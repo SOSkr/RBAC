@@ -88,7 +88,6 @@ trait HasRoleAndPermission
                     return $this->deniedRoles()->get();
             });
 
-            $deniedRoles = $this->deniedRoles()->get();
             foreach($deniedRoles as $role)
                 $deniedRoles = $deniedRoles->merge($role->descendants());
 
@@ -110,7 +109,6 @@ trait HasRoleAndPermission
      */
     public function rolePermissions()
     {
-
         $permissions = new Collection();
         foreach ($this->getRoles() as $role)
             $permissions = $permissions->merge($role->permissions);
@@ -125,11 +123,20 @@ trait HasRoleAndPermission
     public function getPermissions()
     {
         if(!$this->permissions){
-            $rolePermissions = $this->rolePermissions();
-            $userPermissions = $this->grantedPermissions()->get();
+
+            $rolePermissions = $this->remember(['models', 'Permission', 'Role'], 'rolePermissions.user.' . $this->id, function () {
+                return $this->rolePermissions();
+            });
+
+            $userPermissions = $this->remember(['models', 'Permission'], 'grantedPermissions.user.' . $this->id, function () {
+                return $this->grantedPermissions()->get();
+            });
 
             $permissions = $rolePermissions->merge($userPermissions);
-            $deniedPermissions =$this->deniedPermissions()->get();
+            $deniedPermissions = $this->remember(['models', 'Permission'], 'deniedPermissions.user.' . $this->id, function () {
+                return $this->deniedPermissions()->get();
+            });
+
 
             $this->permissions = $permissions->filter(function($permission) use ($deniedPermissions)
             {
