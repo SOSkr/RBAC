@@ -5,6 +5,7 @@ namespace DCN\RBAC\Traits;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cache;
 
 trait HasRoleAndPermission
 {
@@ -78,7 +79,14 @@ trait HasRoleAndPermission
     public function getRoles()
     {
         if(!$this->roles){
-            $this->roles = $this->grantedRoles()->get();
+
+            $this->roles = $this->remember(['models', 'Role'], 'roles.user.' . $this->id, function () {
+                    return $this->grantedRoles()->get();
+            });
+
+            $deniedRoles = $this->remember(['models', 'Role'], 'deniedRoles.user.' . $this->id, function () {
+                    return $this->deniedRoles()->get();
+            });
 
             $deniedRoles = $this->deniedRoles()->get();
             foreach($deniedRoles as $role)
@@ -192,7 +200,7 @@ trait HasRoleAndPermission
             return $role == $value->id || Str::is($role, $value->slug);
         });
     }
-    
+
     /**
      * Check if the user has a permission or permissions.
      *
@@ -378,7 +386,7 @@ trait HasRoleAndPermission
      */
     private function isPretendEnabled()
     {
-        return (bool) config('roles.pretend.enabled');
+        return (bool) config('rbac.pretend.enabled');
     }
 
     /**
@@ -389,7 +397,7 @@ trait HasRoleAndPermission
      */
     private function pretend($option)
     {
-        return (bool) config('roles.pretend.options.' . $option);
+        return (bool) config('rbac.pretend.options.' . $option);
     }
 
     /**
@@ -415,6 +423,22 @@ trait HasRoleAndPermission
         return (!is_array($argument)) ? preg_split('/ ?[,|] ?/', $argument) : $argument;
     }
 
+    public function remember($tags, $key, $function, $expire_time = null)
+    {
+        $cacheDriver = config('cache.default');
+        $expire_time = empty($expire_time) ? config('rbac.default_expire_time') : $expire_time;
+
+        if (config("cache.stores.$cacheDriver.driver") == 'memcached')
+        {
+            return Cache::tags($tags)->remember($key, $expire_time, $function);
+        } else {
+            $tagKey = implode('.', $tags);
+            return Cache::remember($tagKey . ".$key", $expire_time, $function);
+        }
+
+        return false;
+    }
+
     /**
      * Handle dynamic method calls.
      *
@@ -425,13 +449,13 @@ trait HasRoleAndPermission
     public function __call($method, $parameters)
     {
         if (starts_with($method, 'roleIs')) {
-            return $this->roleIs(snake_case(substr($method, 6), config('roles.separator')));
+            return $this->roleIs(snake_case(substr($method, 6), config('rbac.separator')));
         } elseif (starts_with($method, 'may')) {
-            return $this->may(snake_case(substr($method, 3), config('roles.separator')));
+            return $this->may(snake_case(substr($method, 3), config('rbac.separator')));
         } elseif (starts_with($method, 'allowed')) {
-            return $this->allowed(snake_case(substr($method, 7), config('roles.separator')), $parameters[0], (isset($parameters[1])) ? $parameters[1] : true, (isset($parameters[2])) ? $parameters[2] : 'user_id');
+            return $this->allowed(snake_case(substr($method, 7), config('rbac.separator')), $parameters[0], (isset($parameters[1])) ? $parameters[1] : true, (isset($parameters[2])) ? $parameters[2] : 'user_id');
         } elseif (starts_with($method, 'hasRole')) {
-            return $this->hasRole(isset($parameters[0]) ? $parameters[0] : snake_case(substr($method, 7), config('roles.separator')));
+            return $this->hasRole(isset($parameters[0]) ? $parameters[0] : snake_case(substr($method, 7), config('rbac.separator')));
         }
 
         return parent::__call($method, $parameters);

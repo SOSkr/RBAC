@@ -67,4 +67,6 @@ return [
 
     ],
 
+    'default_expire_time' => 3600,
+
 ];
