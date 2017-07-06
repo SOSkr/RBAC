@@ -89,11 +89,11 @@ trait HasRoleAndPermission
             });
 
             foreach($deniedRoles as $role)
-                $deniedRoles = $deniedRoles->merge($role->descendants());
+                $deniedRoles = $deniedRoles->merge($role->rol_descendants());
 
             foreach($this->roles as $role)
                 if(!$deniedRoles->contains($role))
-                    $this->roles = $this->roles->merge($role->descendants());
+                    $this->roles = $this->roles->merge($role->rol_descendants());
 
             $this->roles = $this->roles->filter(function($role) use ($deniedRoles){
                 return !$deniedRoles->contains($role);

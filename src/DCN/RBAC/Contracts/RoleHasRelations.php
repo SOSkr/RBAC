@@ -23,26 +23,26 @@ interface RoleHasRelations
      *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
-    public function parent();
+    public function rol_parent();
     /**
      * Roles parent, grand parent, etc.
      *
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public function ancestors();
+    public function rol_ancestors();
     /**
      * Role has many children roles
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function children();
+    public function rol_children();
 
     /**
      * Roles children, grand children, etc.
      *
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public function descendants();
+    public function rol_descendants();
 
     /**
      * Attach permission to a role.

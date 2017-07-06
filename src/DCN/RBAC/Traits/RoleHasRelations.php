@@ -30,12 +30,12 @@ trait RoleHasRelations
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
 
-    public function parent()
+    public function rol_parent()
     {
         return $this->belongsTo(config('rbac.models.role'),'parent_id');
     }
 
-    public function ancestors()
+    public function rol_ancestors()
     {
         $ancestors = $this->where('id', '=', $this->parent_id)->get();
         while ($ancestors->last() && $ancestors->last()->parent_id !== null)
@@ -52,17 +52,17 @@ trait RoleHasRelations
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function children()
+    public function rol_children()
     {
         return $this->hasMany(config('rbac.models.role'),'parent_id');
     }
 
-    public function descendants()
+    public function rol_descendants()
     {
         $descendants = $this->where('parent_id', '=', $this->id)->get();
 
         foreach($descendants as $descendant)
-            $descendants = $descendants->merge($descendant->descendants());
+            $descendants = $descendants->merge($descendant->rol_descendants());
 
         return $descendants;
     }
